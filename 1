@@ -1,0 +1,58 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import ast
+import plotly.express as px
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+
+# Carregar os dados
+movies = pd.read_csv('../data/tmdb_5000_movies.csv')
+credits = pd.read_csv('../data/tmdb_5000_credits.csv')
+
+# Combinar os DataFrames
+movies = movies.merge(credits, left_on='id', right_on='movie_id', suffixes=('_movie', '_credits'))
+
+# Limpeza e Pré-processamento
+movies['revenue'] = movies['revenue'].replace(0, np.nan)
+movies.dropna(subset=['revenue'], inplace=True)
+movies['genres'] = movies['genres'].apply(ast.literal_eval)
+movies['keywords'] = movies['keywords'].apply(ast.literal_eval)
+movies['genres_names'] = movies['genres'].apply(lambda x: [i['name'] for i in x])
+movies['keywords_names'] = movies['keywords'].apply(lambda x: [i['name'] for i in x])
+movies['release_year'] = pd.to_datetime(movies['release_date']).dt.year
+genres_dummies = movies['genres_names'].explode().dropna().str.get_dummies()
+movies = movies.join(genres_dummies.groupby(level=0).sum())
+
+# Análise Exploratória de Dados (EDA)
+plt.figure(figsize=(10, 6))
+sns.scatterplot(x='budget', y='revenue', data=movies)
+plt.title('Relação entre Orçamento e Receita')
+plt.xlabel('Orçamento')
+plt.ylabel('Receita')
+plt.show()
+
+yearly_revenue = movies.groupby('release_year')['revenue'].mean()
+plt.figure(figsize=(12, 6))
+yearly_revenue.plot(kind='line')
+plt.title('Evolução da Receita Média ao Longo do Tempo')
+plt.xlabel('Ano de Lançamento')
+plt.ylabel('Receita Média')
+plt.show()
+
+# Visualização de Dados Avançada (Plotly)
+fig = px.scatter(movies, x='budget', y='revenue', hover_name='title_movie', title='Orçamento vs Receita (Interativo)')
+fig.show()
+
+# Modelagem Preditiva (Exemplo Simples)
+features = ['budget', 'popularity', 'runtime']
+target = 'revenue'
+movies_model = movies.dropna(subset=features + [target])
+X_train, X_test, y_train, y_test = train_test_split(movies_model[features], movies_model[target], test_size=0.2, random_state=42)
+model = LinearRegression()
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+print(f'Erro Quadrático Médio (MSE): {mse}')
