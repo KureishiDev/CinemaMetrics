@@ -46,7 +46,7 @@ plt.show()
 fig = px.scatter(movies, x='budget', y='revenue', hover_name='title_movie', title='Orçamento vs Receita (Interativo)')
 fig.show()
 
-# Modelagem Preditiva (Exemplo Simples)
+# Modelagem Preditiva 
 features = ['budget', 'popularity', 'runtime']
 target = 'revenue'
 movies_model = movies.dropna(subset=features + [target])
